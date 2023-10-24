@@ -73,10 +73,7 @@ class Bird(pg.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.center = xy
 
-
-
         self.speed = 10 #デフォルトのスピード
-
 
     def change_img(self, num: int, screen: pg.Surface):
         """
@@ -86,7 +83,6 @@ class Bird(pg.sprite.Sprite):
         """
         self.image = pg.transform.rotozoom(pg.image.load(f"ex04/fig/{num}.png"), 0, 2.0)
         screen.blit(self.image, self.rect)
-
 
     def update(self, key_lst: list[bool], screen: pg.Surface):
         """
@@ -263,6 +259,22 @@ class Score:
         screen.blit(self.image, self.rect)
 
 
+class Gravity(pg.sprite.Sprite):
+    def __init__(self, bird: Bird, size: int, life: int):
+        super().__init__()
+        self.image = pg.Surface((2*size, 2*size))
+        pg.draw.circle(self.image, (10, 10, 10), (size, size), size)
+        self.image.set_alpha(200)
+        self.image.set_colorkey((0,0,0))
+        self.rect =self.image.get_rect()
+        self.rect.center= bird.rect.center
+        self.life = life
+    def update(self):
+        self.life -= 1
+        if self.life < 0:
+            self.kill()
+
+
 class NeoGravity(pg.sprite.Sprite):
     def __init__(self,life):
         super().__init__()
@@ -277,7 +289,6 @@ class NeoGravity(pg.sprite.Sprite):
         if self.life < 0:
             self.kill()
         # screen.blit(self.image,self.rect)
-        
 
 
 def main():
@@ -285,22 +296,19 @@ def main():
     screen = pg.display.set_mode((WIDTH, HEIGHT))
     bg_img = pg.image.load("ex04/fig/pg_bg.jpg")
     score = Score()
-
     NeoGrav = NeoGravity(0)
-
     bird = Bird(3, (900, 400))
     bombs = pg.sprite.Group()
     beams = pg.sprite.Group()
     exps = pg.sprite.Group()
     emys = pg.sprite.Group()
-
+    gravity = pg.sprite.Group()
     NeoGrav = pg.sprite.Group()
 
     tmr = 0
     clock = pg.time.Clock()
     while True:
         key_lst = pg.key.get_pressed()
-
         '''
         {K_0:True, K_1:False, //////////}
         '''
@@ -309,6 +317,10 @@ def main():
                 return 0
             if event.type == pg.KEYDOWN and event.key == pg.K_SPACE:
                 beams.add(Beam(bird))
+            if event.type == pg.KEYDOWN and event.key == pg.K_TAB:
+                if score.score >= 50:
+                    gravity.add(Gravity(bird,200,500))
+                    score.score -= 50
             if event.type == pg.KEYDOWN and event.key == pg.K_RETURN:
                 if score.score >= 200:
                     NeoGrav.add(NeoGravity(life = 400))
@@ -320,7 +332,6 @@ def main():
 
         if tmr%200 == 0:  # 200フレームに1回，敵機を出現させる
             emys.add(Enemy())
-
         for emy in emys:
             if emy.state == "stop" and tmr%emy.interval == 0:
                 # 敵機が停止状態に入ったら，intervalに応じて爆弾投下
@@ -334,11 +345,12 @@ def main():
         for bomb in pg.sprite.groupcollide(bombs, beams, True, True).keys():
             exps.add(Explosion(bomb, 50))  # 爆発エフェクト
             score.score_up(1)  # 1点アップ
-
-        for bomb in pg.sprite.groupcollide(bombs, NeoGrav, True, False).keys():
+        for bomb in pg.sprite.groupcollide(bombs, gravity, True, False).keys():
             exps.add(Explosion(bomb, 50))  # 爆発エフェクト
             score.score_up(1)  # 1点アップ
-            
+        for bomb in pg.sprite.groupcollide(bombs, NeoGrav, True, False).keys():
+            exps.add(Explosion(bomb, 50))  # 爆発エフェクト
+            score.score_up(1)  # 1点アップ            
         for emy in pg.sprite.groupcollide(emys, NeoGrav, True, False).keys():
             exps.add(Explosion(emy, 100))  # 爆発エフェクト
             score.score_up(10)  # 10点アップ
@@ -351,6 +363,8 @@ def main():
             time.sleep(2)
             return
 
+        gravity.update()
+        gravity.draw(screen)
 
         NeoGrav.update(0)
         NeoGrav.draw(screen)
@@ -369,6 +383,7 @@ def main():
         exps.update()
         exps.draw(screen)
         score.update(screen)
+
         pg.display.update()
         tmr += 1
         clock.tick(50)
