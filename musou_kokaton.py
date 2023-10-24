@@ -246,7 +246,7 @@ class Score:
     def __init__(self):
         self.font = pg.font.Font(None, 50)
         self.color = (0, 0, 255)
-        self.score = 250
+        self.score = 0
         self.image = self.font.render(f"Score: {self.score}", 0, self.color)
         self.rect = self.image.get_rect()
         self.rect.center = 100, HEIGHT-50
@@ -363,7 +363,9 @@ def main():
                     NeoGrav.add(NeoGravity(life = 400))
                     score.score -=200
             if event.type == pg.KEYDOWN and event.key == pg.K_LSHIFT:
-                bird.fast(quick=20) #高速化
+                bird.fast(quick=True) #高速化
+            if event.type == pg.KEYUP and event.key == pg.K_LSHIFT:
+                bird.fast(quick=False) #高速化
             if event.type == pg.KEYDOWN and event.key == pg.K_CAPSLOCK and len(shields) == 0 and score.score >= 50:
                 shields.add(shield(bird, 400))
                 score.score -= 50
